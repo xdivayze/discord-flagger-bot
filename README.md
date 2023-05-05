@@ -1,5 +1,3 @@
-# discord-flagger-bot
-
 <h1>Simple Discord Flagged Word Blocker Bot Using JDA </h1>
 This bot utilises JDA to delete and log the word and distance to which word it was blocked due to.
 <br>
