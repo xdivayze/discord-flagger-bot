@@ -31,7 +31,7 @@ class MessageListener extends ListenerAdapter {
         try {
             File jarFile = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
             file = new File(jarFile.getParentFile(), "cache.txt");
-            JDA jda = JDABuilder.createDefault("")
+            JDA jda = JDABuilder.createDefault(Main.getArgs()[0])
                     .enableIntents(GatewayIntent.MESSAGE_CONTENT).build();
             jda.addEventListener(new MessageListener());
         } catch (URISyntaxException e) {
@@ -51,20 +51,41 @@ class MessageListener extends ListenerAdapter {
         LinkedList<String> contentList = new LinkedList<>(List.of(content.split("\\s+")));
         for (String s : contentList) {
             try {
-                Optional<Map<String, Map<String, Integer>>> stringStringMap = check(s.toLowerCase());
-                if (stringStringMap.isPresent()) {
-                    String repliable = stringStringMap.get() + " -> " + message.getAuthor().getName() + "\n";
-                    FileWriter writer = new FileWriter(file, true);
-                    writer.write(repliable);
-                    writer.close();
-                    message.delete().queue();
-
-                    channel.sendMessage(repliable).queue();
-                }
+                if (!isWhiteList(s))
+                    try {
+                        Optional<Map<String, Map<String, Integer>>> stringStringMap = check(s.toLowerCase());
+                        if (stringStringMap.isPresent()) {
+                            String repliable = stringStringMap.get() + " -> " + message.getAuthor().getName() + "\n";
+                            FileWriter writer = new FileWriter(file, true);
+                            writer.write(repliable);
+                            writer.close();
+                            message.delete().queue();
+                            channel.sendMessage(repliable).queue();
+                            break;
+                        }
+                    } catch (IOException e) {
+                        System.out.println((e.getMessage()));
+                    }
             } catch (IOException e) {
-                System.out.println((e.getMessage()));
+                e.printStackTrace();
             }
         }
+
+    }
+
+    private boolean isWhiteList(String s) throws IOException {
+        BufferedReader readerWhite = new BufferedReader(new InputStreamReader(Objects.requireNonNull(getClass().getResourceAsStream("/whitelist.txt"))));
+        String line;
+        while (true) {
+            line = readerWhite.readLine();
+            if (line == null) break;
+            if (line.equalsIgnoreCase(s)) {
+                return true;
+            }
+        }
+        return false;
+
+
     }
 
     private Optional<Map<String, Map<String, Integer>>> check(String s) throws IOException {
@@ -72,9 +93,9 @@ class MessageListener extends ListenerAdapter {
         String line;
         while (true) {
             line = reader.readLine();
-            if(line == null) break;
+            if (line == null) break;
             Map<Boolean, Integer> distance;
-            if(line.length() > s.length()) {
+            if (line.length() > s.length()) {
                 distance = FlagShortener.countDistance(line, s);
             } else
                 distance = FlagShortener.countDistance(s, line);
